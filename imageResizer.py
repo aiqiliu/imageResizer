@@ -5,6 +5,7 @@
 # else: compression 0-100
 import PIL
 import os
+import sys
 from PIL import Image
 
 #get image name
@@ -13,7 +14,8 @@ image_name = raw_input('Image name: ')
 
 #check if that image exists in input file
 if not os.path.isfile('input/' + image_name + '.jpg'):
-	print("Image doesn't exist")
+	sys.exit("Image doesn't exist")
+
 #orginal image dimension
 im = Image.open('input/' + image_name + '.jpg')
 
@@ -28,43 +30,87 @@ if width == "":
 	mode = 2 #width null
 else:
 	mode = 1 #height null
-	print("mode is 1")
-
+	
 #check if the required dimension already exist 
 #desired matches with curr
 if mode == 1 and currDimension[0] == int(width):
-	print("Desired image matches with current dimension")
+	sys.exit("Desired image matches with current dimension")
 if mode == 2 and currDimension[1] == int(height):
-	print("Desired image matches with current dimension")
-#desired matches with one of output
-if os.path.isfile(image_name):
-	#output filename format: imagename_widthxheight.jpg
-	for file in os.listdir("image_name"):
-		if mode == 1: #grab the width chunk
-			start = file.find("_")
-			end = file.find("x") + 1
-			if file[start:end] == width:
-				print("Desired image dimension already exists")
-		if mode == 2:
-			start = file.find("x")
-			end = file.find(".") + 1
-			if file[start:end] == height:
-				print("Desired image dimension already exists")
-else:
-	#desired version doesnt exist. RESIZE
+	sys.exit("Desired image matches with current dimension")
+
+def generateNew(image_name, width, height, currDimension):
+	if scaling(mode, width, height, currDimension) == False: #cant scale up, return original
+		print("cannot scale up")
+		return im
+	if os.path.isdir('./'+str(image_name)): #desired matches with one of output
+		#output filename format: imagename_widthxheight.jpg
+		for file in os.listdir('./'+str(image_name)):
+			if mode == 1: #grab the width chunk
+				start = file.find("_") + 1
+				end = file.find("x")
+				if file[start:end] == width:
+					sys.exit("Desired image dimension already exists")
+			if mode == 2:
+				start = file.find("x") + 1
+				end = file.find(".") 
+				if file[start:end] == height:
+					sys.exit("Desired image dimension already exists")
+		rescale(image_name, width, height, currDimension) #desired file not in output folder
+	else:
+		rescale(image_name, width, height, currDimension)
+
+
+# 	#desired version doesnt exist. RESIZE
+
+def rescale(image_name, width, height, currDimension):
+	newDimension = scaling(mode, width, height, currDimension) #get new dimension
+	newDimension = category(newDimension)
+	if mode == 1:
+		width = newDimension
+		percent = (newDimension/float(currDimension[0])) #calculate aspect ratio
+		height = int((float(currDimension[1])*float(percent)))
+	else:
+		height = newDimension
+		percent (newDimension/float(currDimension[1])) #calculate aspect ratio
+		width = int((float(currDimension[0])*float(percent)))
+	newSize = [width, height]
+	im.thumbnail(newSize, PIL.Image.ANTIALIAS) #resize
+	
+	if not os.path.isdir('./'+str(image_name)): #if folder of image exist 
+		os.makedir(str(image_name))
+
+	outPath = str(image_name) + "/" + str(image_name) + "_" + newDimension + "x" + newDimension + ".jpg" #ex. flo/flo_100x100.jpg
 
 
 
+def scaling(mode, width, height, currDimension):
+	if mode == 1:
+		if currDimension[0] < width:
+			return False #scale up, return the original image
+		else:
+			return int(width)
+	if mode == 2:
+		if currDimension[1] < height:
+			return False
+		else:
+			return int(height)
 
+def category(newDimension):
+	if newDimension >= 0 and newDimension <= 150:
+		return 100
+	elif newDimension >= 151 and newDimension <= 250:
+		return 200
+	elif newDimension >= 251 and newDimension <= 762:
+		return 500
+	else:
+		return 1024
+# sys for input 
+# resize: if required is smaller- find min and resize. 
+# return original 
+# line 16 & 36&38. line doesnt exist. terminate program
+# requried sizing :100 200 500 1024. return the closet one
 
-
-
-
-
-
-
-
-
+generateNew(image_name, width, height, currDimension)
 
 
 
