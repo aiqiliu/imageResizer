@@ -39,9 +39,9 @@ if mode == 2 and currDimension[1] == int(height):
 	sys.exit("Desired image matches with current dimension")
 
 def generateNew(image_name, width, height, currDimension):
-	if scaling(mode, width, height, currDimension) == False: #cant scale up, return original
-		print("cannot scale up")
-		return im
+	# if scaling(mode, width, height, currDimension) == False: #cant scale up, return original
+	# 	print("cannot scale up")
+	# 	return im
 	if os.path.isdir('./'+str(image_name)): #desired matches with one of output
 		#output filename format: imagename_widthxheight.jpg
 		for file in os.listdir('./'+str(image_name)):
@@ -76,11 +76,12 @@ def rescale(image_name, width, height, currDimension):
 	newSize = [width, height]
 	im.thumbnail(newSize, PIL.Image.ANTIALIAS) #resize
 	
-	if not os.path.isdir('./'+str(image_name)): #if folder of image exist 
+	if not os.path.isdir('./'+str(image_name)): #if folder of image doesnt exist 
 		os.makedir(str(image_name))
 
-	outPath = str(image_name) + "/" + str(image_name) + "_" + newDimension + "x" + newDimension + ".jpg" #ex. flo/flo_100x100.jpg
-
+	outPath = "./" + str(image_name) + "/" + str(image_name) + "_" + str(width) + "x" + str(height) + ".jpg" #ex. flo/flo_100x100.jpg
+	print("new image file generated")
+	im.save(outPath, "JPEG")
 
 
 def scaling(mode, width, height, currDimension):
