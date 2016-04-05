@@ -8,8 +8,12 @@ import os
 import sys
 from PIL import Image
 
+#print("Please type in arguments in order of 'file name' 'width--number'/'height--number'")
+#take inputs, as a list 
+
 #get image name
-image_name = raw_input('Image name: ')
+image_name = sys.argv[1]
+#raw_input('Image name: ')
 #print(image_name)
 
 #check if that image exists in input file
@@ -23,9 +27,16 @@ currDimension = im.size
 print("Current dimension of " + image_name + ".jpg" + " is: " + str(currDimension[0]) + " x " + str(currDimension[1]))
 
 #get required dimension. width/height 
-print("Please specify either of desired image width or height")
-width = raw_input('Desired width: ')
-height = raw_input('Desired height: ')
+#print("Please specify either of desired image width or height")
+if 'width' in sys.argv[2]:
+	width = sys.argv[2][7:]
+	height = ""
+	print("desired width is: " + width)
+else:
+	height = sys.argv[8:]
+	width = ""
+	print("desired height is: " + height)
+
 if width == "":
 	mode = 2 #width null
 else:
@@ -80,7 +91,7 @@ def rescale(image_name, width, height, currDimension):
 		os.makedir(str(image_name))
 
 	outPath = "./" + str(image_name) + "/" + str(image_name) + "_" + str(width) + "x" + str(height) + ".jpg" #ex. flo/flo_100x100.jpg
-	print("new image file generated")
+	print("new image file")
 	im.save(outPath, "JPEG")
 
 
