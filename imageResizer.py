@@ -13,7 +13,8 @@ from PIL import Image
 def file_exits():
 	#get image name
 	image_name = sys.argv[1]
-
+	print(sys.argv[1])
+	sys.exit()
 	#check if that image exists in input file
 	if not os.path.isfile('input/' + image_name + '.jpg'):
 		print("File doesn't exist")
