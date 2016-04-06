@@ -10,32 +10,48 @@ from PIL import Image
 
 #print("Please type in arguments in order of 'file name' 'width--number'/'height--number'")
 #take inputs, as a list 
-def file_exits():
-	#get image name
-	image_name = sys.argv[1]
-	print(sys.argv[1])
-	sys.exit()
-	#check if that image exists in input file
-	if not os.path.isfile('input/' + image_name + '.jpg'):
-		print("File doesn't exist")
-		return False
 
-	#orginal image dimension
-	im = Image.open('input/' + image_name + '.jpg')
+#no input
+if len(sys.argv) == 1:
+	sys.exit("Please specify with format <<<file--'file_name'>>> <<<width/height--'desirted width/height'>>>")
+#only one input
+if len(sys.argv) == 2:
+	sys.exit("Please specify with format <<<file--'file_name'>>> <<<width/height--'desirted width/height'>>>")
+#more than 2 arguments 
+if len(sys.argv) > 3:	
+	sys.exit("Please specify with format <<<file--'file_name'>>> <<<width/height--'desirted width/height'>>>")
+#first input is dimension
+if 'file--' not in sys.argv[1]:
+	sys.exit("Please specify with format <<<file--'file_name'>>> <<<width/height--'desirted width/height'>>>")
+#dimension format incorrect
+if 'width--' not in sys.argv[2] or 'height--' not in sys.argv[2]:
+	sys.exit("Please specify with format <<<file--'file_name'>>> <<<width/height--'desirted width/height'>>>")
 
-	currDimension = im.size
-	print("Current dimension of " + image_name + ".jpg" + " is: " + str(currDimension[0]) + " x " + str(currDimension[1]))
+#get image name
+image_name = sys.argv[1]
 
-	#get required dimension. width/height 
-	#print("Please specify either of desired image width or height")
-	if 'width' in sys.argv[2]:
-		width = sys.argv[2][7:]
-		height = ""
-		print("desired width is: " + width)
-	else:
-		height = sys.argv[8:]
-		width = ""
-		print("desired height is: " + height)
+
+#check if that image exists in input file
+if not os.path.isfile('input/' + image_name + '.jpg'):
+	print("File doesn't exist")
+	
+
+#orginal image dimension
+im = Image.open('input/' + image_name + '.jpg')
+
+currDimension = im.size
+print("Current dimension of " + image_name + ".jpg" + " is: " + str(currDimension[0]) + " x " + str(currDimension[1]))
+
+#get required dimension. width/height 
+#print("Please specify either of desired image width or height")
+if 'width' in sys.argv[2]:
+	width = sys.argv[2][7:]
+	height = ""
+	print("desired width is: " + width)
+else:
+	height = sys.argv[2][8:]
+	width = ""
+	print("desired height is: " + height)
 
 if width == "":
 	mode = 2 #width null

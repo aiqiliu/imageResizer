@@ -5,24 +5,27 @@ http = urllib3.PoolManager()
 # Login to https://websso.it.northwestern.edu/amserver/UI/Login"
 # Look the console for document.cookie 
 
-tokenid= "AQIC5wM2LY4Sfcwii1j1jMJT2qDaa_xbWSngDSwNthGwXqc.*AAJTSQACMDYAAlNLABMxNTIzMzMwMjM4Mzg4NzQ0MTA5AAJTMQACMDI.*"
+tokenid= "AQIC5wM2LY4fcxAeMZjQZB86ENMKgw1snnympGSF2Sa5ag.*AAJTSQACMDYAAlNLABIyMTQ3Mjc1ODY0OTIwNTg3MjIAAlMxAAIwMQ..*"
 if tokenid == "":
 	sys.exit("Not logged in")
+
 posturl = "https://websso.it.northwestern.edu:443/amserver/identity/isTokenValid"
 posturl+= "?tokenid=" + tokenid
-print posturl
-postreq = http.request('POST', posturl, headers={'Content-Type':'application/json'}, body={})
-#print postreq.data
-index = postreq.data.find('=') + 1
 
-#grab true/false after the equation symbol
-loginStat = postreq.data[index:]
-print loginStat
+postreq = http.request('POST', posturl, headers={'Content-Type':'application/json'}, body={})
+print postreq.data
+
+#grab true/false of login status
+index = postreq.data.find('=') + 1
+loginStat = str(postreq.data[index:])
+print "Login status is: " + loginStat
 
 if loginStat == "false":
-	sys.exit("Not logged in")
+	print "Not logged in"
+	sys.exit()
 else:
 	print "You're logged in!"
+# sys.exit()
 ### Exchange SSO token for NETID
 # GET https://websso.it.northwestern.edu:443/amserver/identity/attributes?subjectid=<<insert-sso-token-here>>&attributenames=AuthType&attributenames=uid"
 #replace subjectid value with the session
@@ -40,6 +43,6 @@ print "Your netID is: " + netID
 #check if logged in netID is authorized 
 authorizedID = ["alc342"]
 if netID in authorizedID:
-	print "Congrats! you have access to this service!"
+	print "Congrats! you have access to this service."
 else:
 	sys.exit("Sorry you don't have access to this service")
