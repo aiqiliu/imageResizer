@@ -17,10 +17,10 @@ print postreq.data
 
 #grab true/false of login status
 index = postreq.data.find('=') + 1
-loginStat = str(postreq.data[index:])
-print "Login status is: " + loginStat
+loginStat = postreq.data[index:]
+print "Login status is: " + loginStat.rstrip()
 
-if loginStat == "false":
+if loginStat.rstrip() == "false":
 	print "Not logged in"
 	sys.exit()
 else:
