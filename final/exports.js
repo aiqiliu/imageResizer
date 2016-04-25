@@ -9,6 +9,7 @@ var s3 = new AWS.S3();
 var fs = require('fs');
 var request = require('request');
 var http = require('http');
+var async = require('async');
 
 var finalUrl = "";
 var imageSource = "";
@@ -122,7 +123,7 @@ function process(originalPath, desired_width, desired_height, event){
 	  	var height = size.height;
 	    console.log('width = ' + size.width);
 	    console.log('height = ' + size.height);
-	    //newDimension(originalPath, width, height, desired_width, desired_height, event);
+	    newDimension(originalPath, width, height, desired_width, desired_height, event);
 	  } else {
 	  	console.log(err);
 	  }
@@ -131,11 +132,10 @@ function process(originalPath, desired_width, desired_height, event){
 }
 
 function newDimension(originalImage, width, height, desired_width, desired_height, event){
-	//specified desired width
-	console.log("in newDimension func")
+	    //specified desired width
 		if (desired_height === null){
-			//desired dimension > curr dimension
-			if (!dimensionValid(desired_width)){
+			console.log("only width is specified");
+			if (!dimensionValid(String(desired_width))) {
 				throw new Error("dimension invalied")
 			} else if (desired_width >= width){
 				//return the url of the original file
@@ -144,16 +144,18 @@ function newDimension(originalImage, width, height, desired_width, desired_heigh
 			} else {
 				//get dimension category and calculate new dimension
 				desired_width = category(desired_width);
+				console.log(desired_width)
 				percent = desired_width/width;
 				console.log(percent)
 				desired_height = parseInt(height*percent);
+				console.log("desired_height=" + String(desired_height))
 				resize(originalImage, desired_width, desired_height, event);
 			}		
 		}
 		//specified desired height 
 		if (desired_width === null){
 			//desired dimension > curr dimension
-			if (!dimensionValid(desired_height)){
+			if (!dimensionValid(String(desired_height))){
 				throw new Error("dimension invalied")
 			} else if (desired_height >= height){
 				//return the url of the original file
@@ -172,43 +174,50 @@ function newDimension(originalImage, width, height, desired_width, desired_heigh
 var resize = function (originalImage, desired_width, desired_height, event){
 //resize 
 	//destkey = event.netid + "_" + String(desired_width) + "x" + String(desired_height) + ".jpg";
-	destkey = "alc342" + "_" + String(desired_width) + "x" + String(desired_height) + ".jpg";
-	destbucket = 'nux-test';
+	var destkey = "alc342" + "_" + String(desired_width) + "x" + String(desired_height) + ".jpg";
+	var destbucket = 'nux-test';
 	async.waterfall([
 		function transform(next) {
-			originalImage.resize(desired_width, desired_height)
+			gm(originalImage).resize(desired_width, desired_height)
      			.toBuffer("jpg", function(err, buffer) {
                     if (err) {
                        throw new Error ("Cannot resize the image")
                     } else {
+                    	console.log("transformed the pic")
                         next(null, buffer);
                     }
                 });
 
         },
         function upload(data, next) {
-            // Stream the transformed image to a different S3 bucket.
-            // s3.putObject({
-            //         Bucket: destBucket,
-            //         Key: destKey,
-            //         Body: data,
-            //         ContentType: contentType
-            //     });
+
             var params = {
             	Bucket: 'nux-test',
-                Key: destKey,
+                Key: destkey,
                 Body: data,
-                //ContentType: contentType
             }
             s3.putObject(params, function(err, response){
 			    if(err) {
 			        console.log("Image not uploaded", err);
 		    	} else {
 		    		console.log("image converted");
+		    		next();
 		    	}
 		    });
+		},
+		function getURL(){
+
+			var params = {
+            	Bucket: 'nux-test',
+                Key: destkey,
+            }
+		 	s3.getSignedUrl('getObject', params, function (err, url) {
+			  console.log("The URL is", url);
+			  finalUrl = url;
+			});
 		}
-])}
+	]);
+}
 
 
 //caching. four categories of dimensions
