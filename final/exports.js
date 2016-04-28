@@ -12,16 +12,16 @@ var http = require('http');
 var async = require('async');
 
 var finalUrl = "";
-var imageSource = "";
-var netid = "123456";
+var imageSource = 'http://s3-us-west-2.amazonaws.com/nux-test/Aiqi_netIDs/nux-logo.png';
 exports.handler = function(event, context, callback){   
     // validate request
     //check for valid width (no negatives, no text, no null)
- //    var desired_width = event.width;
-	// var desired_height = event.height;
+    var netid = event.netid;
+    var desired_width = event.width;
+	var desired_height = event.height;
 	console.log(event.netid)
-	var desired_width = 100;
-	var desired_height = null;
+
+	console.log(desired_height == null)
     if (!desired_width && !desired_height) {
     	throw new Error("No dimension is specified");
     }
@@ -33,81 +33,108 @@ exports.handler = function(event, context, callback){
     	//check if the image for that netid with the dimensions exists in AWS S3
     	var params = {
 		    Bucket: 'nux-test',
-		    Key: "123456.jpg"
+		    Key: netid + '.jpg'
 		};
-		var originalImage = require('fs').createWriteStream('/tmp/123456.jpg');
+		var originalImage = require('fs').createWriteStream('/tmp/' + netid + '.jpg');
         var originalPath = originalImage.path;
 
-//.createReadStream().pipe(originalImage);
 		s3.getObject(params, function(err, response){
 		    if (err) {
 		        console.log("Image not in S3");
-		        var putparams = {
-		        	Bucket: 'nux-test', 
-		        	Key: "123456.jpg"
-		        }
-		        console.log(putparams)
-		        //download image from source
-		        imageSource = 'http://s3-us-west-2.amazonaws.com/nux-test/Aiqi_netIDs/nux-logo.png';
-		        download(imageSource, originalImage, function(){
-				  console.log('done');
-				});
 
-				fs.readFile(originalPath, function(err, data) {
-			    	if (err) {
-			    		console.log("couldn't read file", err)
-			    	} else {
-			    		console.log("able to read image")
-				     	params.Body = data;
-						s3.putObject(putparams, function(err, dataBucket) {
-							if (err) {
-								console.log("failed to put image in s3", err)
-							} else {
-								console.log("put image file in s3")
-							}
-						});
-				    }
-				}). then(function(a){
-					s3.getObject(params).createReadStream().pipe(originalImage);
-					process(originalPath, desired_width, desired_height, event);
-				});
-			} else{
+		        async.waterfall([
+
+		        	function downloadImage (next){
+					  	request.head(imageSource, function(err, res, body){
+					  	if (err) {
+					  		console.log("can't download image", err)
+					  	} else {
+					  		console.log('content-type:', res.headers['content-type']);
+					    	console.log('content-length:', res.headers['content-length']);
+					    	request(imageSource).pipe(originalImage);
+					    	//.on('close', callback)
+					    	next();
+					  	}
+					  });
+					},
+
+					function storeOnS3(next) {
+						fs.readFile(originalPath, function(err, data) {
+				    	if (err) {
+				    		console.log("couldn't read file", err)
+				    	} else {
+				    		console.log("able to read image")
+				    		var putparams = {
+					        	Bucket: 'nux-test', 
+					        	Key: netid + '.jpg'
+					        }
+					     	putparams.Body = data;
+							s3.putObject(putparams, function(err, dataBucket) {
+								if (err) {
+									console.log("failed to put image in s3", err)
+								} else {
+									console.log("put image file in s3")
+									next();
+								}
+							});
+					    }
+					});
+					}, 
+
+					function nextStep() {
+						process(originalPath, desired_width, desired_height, event);
+
+					}
+
+
+		        	]);
+		  //       //download image from source
+		  //       download(imageSource, originalImage, function(){
+				//   console.log('done');
+				//   process(originalPath, desired_width, desired_height, event);
+
+				//   fs.readFile(originalPath, function(err, data) {
+			 //    	if (err) {
+			 //    		console.log("couldn't read file", err)
+			 //    	} else {
+			 //    		console.log("able to read image")
+				//      	params.Body = data;
+				// 		s3.putObject(putparams, function(err, dataBucket) {
+				// 			if (err) {
+				// 				console.log("failed to put image in s3", err)
+				// 			} else {
+				// 				console.log("put image file in s3")
+				// 			}
+				// 		});
+				//     }
+				// });
+
+				// });
+				
+					// s3.getObject(params).createReadStream().pipe(originalImage);
+			} else {
 				console.log("object in s3");
-				s3.getObject(params).createReadStream().pipe(originalImage);
-				process(originalPath, desired_width, desired_height, event);
+				async.waterfall([
+					function getObject(next){
+						console.log("1. waterfall1")
+						console.log(originalPath)
+						next(null, s3.getObject(params).createReadStream().pipe(originalImage))
+					},
+					function nextStep(){
+						console.log("2. waterfall2")
+						process(originalPath, desired_width, desired_height, event);
+					}
+
+				]);
 			} 
 		});	
 	}
 	}
 };    
 
-    
-    //@TOOD: Resize the image in JS
-    
-    //@TODO: Store the resized image in AWS S3 (and get a URL for it). 
-    
-//     var response = {
-//         "name" : event.params.querystring.netid,
-//         url: "https://S3_URL_TO_THE_RESIZED_IMAGE.png"
-//     };
-    
-//     //callback(new Error("sorry"));
-//     callback(null, response);
-// };
-
-
-// function myresize(originalImage, desired_width, desired_height, event) {
-// 	var netid = event.netid;
-// 	var fname = './' + netid;
-// 	require('fs').writeFile(fname + '.jpg', imageBase64, 'base64', function(err) {
-// 	    if (err) throw err
-// 	    process(fname, desired_width, desired_height);
-// 	});
-// }
-
-
 function process(originalPath, desired_width, desired_height, event){
 	console.log("in the process func")
+	console.log(originalPath)
 	// var image_name = request.netID;
 	var width = 0;
 	var height = 0;
@@ -115,7 +142,7 @@ function process(originalPath, desired_width, desired_height, event){
 	// var file = fname + '.jpg';
 
 	//get original size and calculate new size
-	originalPath = 'flo.jpg'
+	//originalPath = '../input/light.jpg'
 	gm(originalPath)
 	.size(function (err, size) {
 	  if (!err) {
@@ -133,13 +160,14 @@ function process(originalPath, desired_width, desired_height, event){
 
 function newDimension(originalImage, width, height, desired_width, desired_height, event){
 	    //specified desired width
-		if (desired_height === null){
+		if (desired_height == null){
 			console.log("only width is specified");
 			if (!dimensionValid(String(desired_width))) {
 				throw new Error("dimension invalied")
 			} else if (desired_width >= width){
 				//return the url of the original file
 				finalUrl = imageSource;
+				console.log("final URL is: " + String(finalUrl))
 				return 
 			} else {
 				//get dimension category and calculate new dimension
@@ -153,13 +181,14 @@ function newDimension(originalImage, width, height, desired_width, desired_heigh
 			}		
 		}
 		//specified desired height 
-		if (desired_width === null){
+		if (desired_width == null){
 			//desired dimension > curr dimension
 			if (!dimensionValid(String(desired_height))){
 				throw new Error("dimension invalied")
 			} else if (desired_height >= height){
 				//return the url of the original file
 				finalUrl = imageSource;
+				console.log("final URL is: " + String(finalUrl))
 				return 
 			} else {
 				desired_height = category(desired_height);
@@ -174,7 +203,7 @@ function newDimension(originalImage, width, height, desired_width, desired_heigh
 var resize = function (originalImage, desired_width, desired_height, event){
 //resize 
 	//destkey = event.netid + "_" + String(desired_width) + "x" + String(desired_height) + ".jpg";
-	var destkey = "alc342" + "_" + String(desired_width) + "x" + String(desired_height) + ".jpg";
+	var destkey = event.netid + "_" + String(desired_width) + "x" + String(desired_height) + ".jpg";
 	var destbucket = 'nux-test';
 	async.waterfall([
 		function transform(next) {
@@ -225,7 +254,7 @@ function category(desired){
 	if (desired >= 0 && desired <= 150){
 		return 100;
 	} else if (desired >= 151 && desired <= 250){
-		return 200;
+		return 250;
 	} else if (desired >= 251 && desired <= 762){
 		return 500;
 	} else{
@@ -253,7 +282,8 @@ var download = function(imageSource, originalImage, callback){
 };
 
 var event = {
-	netid: "alc342"
+	netid: "klc342",
+	width: 200
 
 };
 var context = {};
