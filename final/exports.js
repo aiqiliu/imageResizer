@@ -45,73 +45,43 @@ exports.handler = function(event, context, callback){
 		        async.waterfall([
 
 		        	function downloadImage (next){
-					  	request.head(imageSource, function(err, res, body){
-					  	if (err) {
-					  		console.log("can't download image", err)
-					  	} else {
-					  		console.log('content-type:', res.headers['content-type']);
-					    	console.log('content-length:', res.headers['content-length']);
-					    	request(imageSource).pipe(originalImage);
-					    	//.on('close', callback)
-					    	next();
-					  	}
-					  });
+					  	download(imageSource, originalImage, function(err){
+					  		if (err){
+					  			console.log("can't download image", err)
+					  		} else {
+					  			console.log("downloaded")
+					  			next();
+					  		}
+					  	});
 					},
 
 					function storeOnS3(next) {
 						fs.readFile(originalPath, function(err, data) {
-				    	if (err) {
-				    		console.log("couldn't read file", err)
-				    	} else {
-				    		console.log("able to read image")
-				    		var putparams = {
-					        	Bucket: 'nux-test', 
-					        	Key: netid + '.jpg'
-					        }
-					     	putparams.Body = data;
-							s3.putObject(putparams, function(err, dataBucket) {
-								if (err) {
-									console.log("failed to put image in s3", err)
-								} else {
-									console.log("put image file in s3")
-									next();
-								}
-							});
-					    }
-					});
+					    	if (err) {
+					    		console.log("couldn't read file", err)
+					    	} else {				    		
+					    		console.log("able to read image")
+					    		var putparams = {
+						        	Bucket: 'nux-test', 
+						        	Key: netid + '.jpg',
+						        	Body: data
+						        }
+								s3.putObject(putparams, function(err, dataBucket) {
+									if (err) {
+										console.log("failed to put image in s3", err)
+									} else {
+										console.log("put image file in s3")
+										next();
+									}
+								});
+						    }
+						});
 					}, 
 
 					function nextStep() {
 						process(originalPath, desired_width, desired_height, event);
 
 					}
-
-
-		        	]);
-		  //       //download image from source
-		  //       download(imageSource, originalImage, function(){
-				//   console.log('done');
-				//   process(originalPath, desired_width, desired_height, event);
-
-				//   fs.readFile(originalPath, function(err, data) {
-			 //    	if (err) {
-			 //    		console.log("couldn't read file", err)
-			 //    	} else {
-			 //    		console.log("able to read image")
-				//      	params.Body = data;
-				// 		s3.putObject(putparams, function(err, dataBucket) {
-				// 			if (err) {
-				// 				console.log("failed to put image in s3", err)
-				// 			} else {
-				// 				console.log("put image file in s3")
-				// 			}
-				// 		});
-				//     }
-				// });
-
-				// });
-				
-					// s3.getObject(params).createReadStream().pipe(originalImage);
 			} else {
 				console.log("object in s3");
 				async.waterfall([
