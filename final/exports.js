@@ -81,20 +81,17 @@ exports.handler = function(event, context, callback){
 					function nextStep() {
 						process(originalPath, desired_width, desired_height, event);
 
-					}
+					}]);
 			} else {
 				console.log("object in s3");
 				async.waterfall([
 					function getObject(next){
-						console.log("1. waterfall1")
-						console.log(originalPath)
-						next(null, s3.getObject(params).createReadStream().pipe(originalImage))
+						s3.getObject(params).createReadStream().pipe(originalImage);
+						setTimeout(function(str1) {
+							process(originalPath, desired_width, desired_height, event);
+						  console.log(str1);
+						}, 2000, "Making sure that the image is properly stored");
 					},
-					function nextStep(){
-						console.log("2. waterfall2")
-						process(originalPath, desired_width, desired_height, event);
-					}
-
 				]);
 			} 
 		});	
@@ -239,6 +236,7 @@ function dimensionValid(dimension){
 	}
 	return true;
 }
+
 var download = function(imageSource, originalImage, callback){
   	request.head(imageSource, function(err, res, body){
   	if (err) {
@@ -251,8 +249,10 @@ var download = function(imageSource, originalImage, callback){
   });
 };
 
+
+
 var event = {
-	netid: "klc342",
+	netid: "123456",
 	width: 200
 
 };
