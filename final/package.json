@@ -1,0 +1,27 @@
+{
+  "name": "final",
+  "version": "1.0.0",
+  "description": "",
+  "main": "exports.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.3.4",
+    "gm": "^1.22.0",
+    "chai": "^3.5.0",
+    "request": "^2.72.0",
+    "http": "^0.0.0",
+    "image-size": "^0.5.0",
+    "async": "^2.0.0-rc.3"
+  },
+  "devDependencies": {
+    "mocha": "^2.4.5"
+  },
+  "scripts": {
+    "test": "./node_modules/.bin/mocha --reporter spec"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
