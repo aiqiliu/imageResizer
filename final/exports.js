@@ -21,7 +21,6 @@ exports.handler = function(event, context, callback){
 	var desired_height = event.height;
 	console.log(event.netid)
 
-	console.log(desired_height == null)
     if (!desired_width && !desired_height) {
     	throw new Error("No dimension is specified");
     }
@@ -79,7 +78,8 @@ exports.handler = function(event, context, callback){
 					}, 
 
 					function nextStep() {
-						process(originalPath, desired_width, desired_height, event);
+						var result = process(originalPath, desired_width, desired_height, event);
+						return result
 
 					}]);
 			} else {
@@ -88,7 +88,8 @@ exports.handler = function(event, context, callback){
 					function getObject(next){
 						s3.getObject(params).createReadStream().pipe(originalImage);
 						setTimeout(function(str1) {
-							process(originalPath, desired_width, desired_height, event);
+							var result = process(originalPath, desired_width, desired_height, event);
+							return result
 						  console.log(str1);
 						}, 2000, "Making sure that the image is properly stored");
 					},
@@ -117,9 +118,21 @@ function process(originalPath, desired_width, desired_height, event){
 	  	var height = size.height;
 	    console.log('width = ' + size.width);
 	    console.log('height = ' + size.height);
-	    newDimension(originalPath, width, height, desired_width, desired_height, event);
+	    var new_dimension = newDimension(originalPath, width, height, desired_width, desired_height, event);
+	    if (new_dimension && typeof new_dimension !== 'string'){
+	    	//result is not the final url nor False
+	    	desired_width = new_dimension[0];
+	    	desired_height = new_dimension[1];
+	    	var final_url = resize(originalPath, desired_width, desired_height, event);
+	    	return final_url
+	    } else {
+	    	// will either return the final url or False
+	    	return new_dimension;
+	    }
+
 	  } else {
 	  	console.log(err);
+	  	return false
 	  }
 	});
 
@@ -133,18 +146,26 @@ function newDimension(originalImage, width, height, desired_width, desired_heigh
 				throw new Error("dimension invalied")
 			} else if (desired_width >= width){
 				//return the url of the original file
-				finalUrl = imageSource;
-				console.log("final URL is: " + String(finalUrl))
-				return 
+				var params = {
+            	Bucket: 'nux-test',
+                Key: 'event.netid' + '.jpg',
+	            }
+			 	s3.getSignedUrl('getObject', params, function (err, url) {
+				  console.log("The URL is", url);
+				  finalUrl = url;
+				  return finalUrl
+				});
 			} else {
 				//get dimension category and calculate new dimension
 				desired_width = category(desired_width);
 				console.log(desired_width)
 				percent = desired_width/width;
 				console.log(percent)
-				desired_height = parseInt(height*percent);
+				desired_height = Math.floor(height*percent);
 				console.log("desired_height=" + String(desired_height))
-				resize(originalImage, desired_width, desired_height, event);
+				console.log([desired_width, desired_height])
+				return [desired_width, desired_height]
+				// resize(originalImage, desired_width, desired_height, event);
 			}		
 		}
 		//specified desired height 
@@ -153,16 +174,23 @@ function newDimension(originalImage, width, height, desired_width, desired_heigh
 			if (!dimensionValid(String(desired_height))){
 				throw new Error("dimension invalied")
 			} else if (desired_height >= height){
-				//return the url of the original file
-				finalUrl = imageSource;
-				console.log("final URL is: " + String(finalUrl))
-				return 
+				var params = {
+            	Bucket: 'nux-test',
+                Key: 'event.netid' + '.jpg',
+	            }
+			 	s3.getSignedUrl('getObject', params, function (err, url) {
+				  console.log("The URL is", url);
+				  finalUrl = url;
+				  return finalUrl
+				});
 			} else {
 				desired_height = category(desired_height);
 				percent = desired_height/height;
 				console.log(percent)
 				desired_width = parseInt(width*percent);
-				resize(originalImage, desired_width, desired_height, event);
+				console.log([desired_width, desired_height])
+				return [desired_width, desired_height]
+				// resize(originalImage, desired_width, desired_height, event);
 			}	
 		}
 }
@@ -208,8 +236,9 @@ var resize = function (originalImage, desired_width, desired_height, event){
                 Key: destkey,
             }
 		 	s3.getSignedUrl('getObject', params, function (err, url) {
-			  console.log("The URL is", url);
+			  // console.log("The URL is", url);
 			  finalUrl = url;
+			  return finalUrl
 			});
 		}
 	]);
@@ -230,8 +259,11 @@ function category(desired){
 }
 
 function dimensionValid(dimension){
-	//dimension is negative
+	//there is a negative sign in the dimension
 	if (dimension.indexOf('-') !== -1){
+		return false;
+	} else if (isNaN(num)){
+		//not a number 
 		return false;
 	}
 	return true;
@@ -258,7 +290,42 @@ var event = {
 };
 var context = {};
 var callback = {};
-exports.handler(event, context, callback)
+console.log(exports.handler(event, context, callback))
+
+// tests for img not on s3
+// TEST1
+// pass in netid: "123456", desired width: 200
+// file downloaded to ./tmp as './tmp/123456.jpg'
+// stored to s3 
+// the final image stored is ‘123456_250x109.jpg’
+
+
+
+
+
+// TEST2
+// pass in netid: "123356", desired width: 300
+// final image url is "123345.jpg"
+
+// tests for img in s3
+// TEST1
+// pass in netid: 'alc342', desired width: 200
+// file downloaded from s3 as './tmp/alc342.jpg'
+// converted to s3 as ....
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
