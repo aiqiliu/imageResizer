@@ -78,7 +78,7 @@ exports.handler = function(event, context, callback){
 					}, 
 
 					function nextStep() {
-						var result = process(originalPath, desired_width, desired_height, event);
+						var result = process(originalPath , desired_width, desired_height, event);
 						return result
 
 					}]);
@@ -118,7 +118,7 @@ function process(originalPath, desired_width, desired_height, event){
 	  	var height = size.height;
 	    console.log('width = ' + size.width);
 	    console.log('height = ' + size.height);
-	    var new_dimension = newDimension(originalPath, width, height, desired_width, desired_height, event);
+	    var new_dimension = newDimension(width, height, desired_width, desired_height, event);
 	    if (new_dimension && typeof new_dimension !== 'string'){
 	    	//result is not the final url nor False
 	    	desired_width = new_dimension[0];
@@ -138,7 +138,7 @@ function process(originalPath, desired_width, desired_height, event){
 
 }
 
-function newDimension(originalImage, width, height, desired_width, desired_height, event){
+function newDimension(width, height, desired_width, desired_height, event){
 	    //specified desired width
 		if (desired_height == null){
 			console.log("only width is specified");
@@ -219,7 +219,7 @@ var resize = function (originalImage, desired_width, desired_height, event){
             	Bucket: 'nux-test',
                 Key: destkey,
                 Body: data,
-            }
+            };
             s3.putObject(params, function(err, response){
 			    if(err) {
 			        console.log("Image not uploaded", err);
@@ -229,6 +229,21 @@ var resize = function (originalImage, desired_width, desired_height, event){
 		    	}
 		    });
 		},
+
+		function confirmExistance(next) {
+			var params = {
+            	Bucket: 'nux-test',
+                Key: destkey,
+            }
+            s3.getObject(params, function(err, response){
+            	if (err) {
+            		throw new Error("Object not on s3")
+            	} else {
+            		next();
+            	}
+            });
+		}, 
+
 		function getURL(){
 
 			var params = {
